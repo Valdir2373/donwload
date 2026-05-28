@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload & Download de Arquivos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #333;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .file-list {
+            list-style: none;
+            padding: 0;
+        }
+        .file-list li {
+            padding: 10px;
+            margin: 5px 0;
+            background-color: #f5f5f5;
+            border-radius: 3px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .download-btn {
+            background-color: #28a745;
+            padding: 5px 15px;
+            font-size: 12px;
+        }
+        .download-btn:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <h1>Gerenciar Arquivos</h1>
+
+    <div class="container">
+        <h2>📤 Upload de Arquivo</h2>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <input type="file" id="fileInput" required>
+            <button type="submit">Enviar Arquivo</button>
+        </form>
+        <p id="uploadStatus"></p>
+    </div>
+
+    <div class="container">
+        <h2>📥 Arquivos Disponíveis para Download</h2>
+        <button onclick="loadFiles()">Atualizar Lista</button>
+        <ul class="file-list" id="fileList">
+            <li>Carregando...</li>
+        </ul>
+    </div>
+
+    <script>
+        // Upload de arquivo
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('file', document.getElementById('fileInput').files[0]);
+
+            try {
+                const response = await fetch('/profile', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                document.getElementById('uploadStatus').textContent = '✅ Arquivo enviado com sucesso!';
+                document.getElementById('fileInput').value = '';
+                setTimeout(() => loadFiles(), 500);
+            } catch (err) {
+                document.getElementById('uploadStatus').textContent = '❌ Erro ao enviar arquivo';
+                console.error(err);
+            }
+        });
+
+        // Carregar lista de arquivos
+        async function loadFiles() {
+            try {
+                const response = await fetch('/files');
+                const data = await response.json();
+                const fileList = document.getElementById('fileList');
+
+                if (data.files.length === 0) {
+                    fileList.innerHTML = '<li>Nenhum arquivo disponível</li>';
+                    return;
+                }
+
+                fileList.innerHTML = data.files.map(file => `
+                    <li>
+                        <span>📄 ${file}</span>
+                        <a href="/download/${file}" class="download-btn">Baixar</a>
+                    </li>
+                `).join('');
+            } catch (err) {
+                document.getElementById('fileList').innerHTML = '<li>❌ Erro ao carregar arquivos</li>';
+                console.error(err);
+            }
+        }
+
+        // Carregar arquivos ao iniciar
+        loadFiles();
+    </script>
+</body>
+</html>
