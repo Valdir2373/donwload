@@ -1,184 +1,135 @@
-# Projeto Donwload & Troll Security Suite
+# Projeto Download & Builder Mestre
 
-Este repositório contém uma suíte experimental de ferramentas de segurança, simulação de malware e controle de sistemas, desenvolvida para fins de estudo de cibersegurança, testes de intrusão (pentest) e demonstração de conceitos de criptografia e persistência no sistema operacional Windows. 
-
-A arquitetura do projeto é dividida em três pilares principais:
-1. **Servidor de Controle (Node.js)**: Painel e backend para recebimento e download de dados exfiltrados.
-2. **Troll Terror & Discord Collector**: Malware simulador composto por scripts de travamento de tela (Melt Glitch), flood de popups, persistência avançada no Windows e um coletor de tokens Discord descriptografados via DPAPI com injeção automática.
-3. **Crip Locker (Simulador de Ransomware)**: Mecanismo de criptografia multi-threaded local utilizando a API de Criptografia nativa do Windows (BCrypt/CryptoAPI) com criptografia AES-256 e suporte a chaves RSA.
+Este repositório contém uma infraestrutura modular composta por um servidor web para recebimento e gerenciamento de arquivos, uma suite de ferramentas em C++ para Windows (incluindo coletores, injetores e criptografadores de arquivos), além de um ambiente de compilação automatizado via PowerShell e Docker.
 
 ---
 
-## 📁 Estrutura do Repositório
+## 📁 Estrutura do Projeto
 
 ```text
 donw/
-├── a/                            # Script simples de automação de navegador
-│   ├── main.cpp                  # Código C++ para controle do Edge e injeção simples de teclas
-│   ├── edge_control.exe          # Executável compilado do controlador do Edge
-│   └── navegador_control.exe     # Executável compilado do navegador
-│
-├── collector_discord/            # Suíte principal de Simulação & Coleta (C++)
-│   ├── main.cpp                  # Orquestração do executável Troll (terror.exe)
-│   ├── globals.cpp / .h          # Variáveis globais, mensagens e configurações da suíte
-│   ├── helper.cpp / .h            # Funções utilitárias (criação de processos ocultos, RNG)
-│   ├── registry.cpp / .h          # Helpers para leitura e escrita no Registro do Windows
-│   ├── persistence.cpp / .h      # Métodos de persistência (HKCU Run & HKCU Winlogon Shell)
-│   ├── input_lock.cpp / .h        # Ganchos de teclado/mouse (Hooks) e bloqueio completo de entrada
-│   ├── wallpaper.cpp / .h        # Troca de papel de parede (fallback em BMP e download dinâmico em JPG)
-│   ├── beep.cpp / .h              # Geração de áudio senoidal e loop de som irritante
-│   ├── popup.cpp / .h            # Spawner contínuo de popups flutuantes de alerta
-│   ├── qr_popup.cpp / .h          # Janela GDI+ que busca e exibe um QR Code via WinHTTP
-│   ├── melt.cpp / .h              # Efeito visual de derretimento de tela com glitches horizontais
-│   ├── build.bat                 # Script de compilação da suíte Troll (terror.exe)
-│   ├── compilerSmart.bat         # Empacotador ZIP com senha (AES-256) para evasão de SmartScreen
-│   │
-│   ├── collector/                # Subprojeto: Coletor de Tokens e Informações (C++)
-│   │   ├── main.cpp              # Entry point do coletor e lógica de upload multipart via WinHTTP
-│   │   ├── discord.cpp / .h      # Decriptografia de Master Key (DPAPI) e scan de LevelDB (.ldb/.log)
-│   │   ├── sysinfo.cpp / .h      # Coleta de metadados do sistema (Hostname, SO, GeoIP)
-│   │   ├── zip_writer.cpp / .h   # Compactação em memória e gravação do arquivo ZIP
-│   │   ├── launcher.cpp          # Injetor automático interativo de tokens Discord (discord_launcher.exe)
-│   │   ├── resources.rc          # Arquivo de recurso para embutir o launcher no coletor
-│   │   ├── build.bat             # Compilação do coletor com o launcher embutido
-│   │   └── build_launcher.bat    # Compilação standalone do launcher
-│   │
-│   ├── compiller/                # Script de automação de compilação
-│   │   └── build.ps1             # PowerShell script para compilar múltiplos binários de uma vez
-│   │
-│   └── crip/                     # Subprojeto: Lock/Unlock Multi-threaded (Ransomware Sim)
-│       ├── main.cpp              # Entrada do motor de criptografia / descriptografia
-│       ├── config.h              # Configurações de senha fixa e escopo de atuação
-│       ├── crypto_service.cpp/.h # Wrappers da API BCrypt do Windows (SHA-256, RSA, AES-256)
-│       ├── disk_service.cpp/.h   # Iteradores de diretório e identificadores de unidades (Drives)
-│       ├── file_service.cpp/.h   # Algoritmo de criptografia de arquivos e estrutura do cabeçalho
-│       ├── worker_pool.cpp/.h    # Pool de threads trabalhadoras concorrentes
-│       └── build.ps1             # PowerShell script para compilar o locker ou unlocker
-│
-├── public/                       # Frontend web estático do servidor de upload
-│   └── index.html                # Painel de upload e download de arquivos exfiltrados
-│
-├── uploads/                      # Pasta onde os ZIPs enviados pelos alvos são salvos
-├── .env                          # Variáveis de ambiente (Chaves Pix, porta do servidor, etc.)
-├── .gitignore                    # Regras de exclusão do Git
-├── package.json                  # Dependências e scripts do servidor Node.js
-└── server.js                     # Servidor Express.js (Recebe arquivos e gera imagens Pix)
+├── .env                  # Configurações de ambiente (Porta, Pix, URLs)
+├── .env.example          # Exemplo de variáveis de ambiente
+├── Dockerfile            # Imagem de compilação (Powershell + MinGW-w64 + 7-Zip)
+├── server.js             # Servidor Backend em Node.js (Express + Multer)
+├── package.json          # Dependências do backend
+├── public/
+│   └── index.html        # Interface Web para upload/download de arquivos
+├── uploads/              # Pasta destino de arquivos recebidos
+├── builder/
+│   └── build.ps1         # Script Mestre de Compilação e Empacotamento
+└── collector_discord/    # Suite de ferramentas em C++
+    ├── build.ps1         # Script de compilação do Terror (Stealer)
+    ├── collector/        # Módulo de coleta de tokens Discord
+    │   ├── build.ps1     # Script de compilação do Collector
+    │   └── README.md     # Documentação interna do Collector
+    └── crip/             # Módulo de criptografia de arquivos
+        └── build.ps1     # Script de compilação do Criptografador/Descriptografador
 ```
 
 ---
 
-## ⚙️ Componentes em Detalhes
+## 🛠️ Tecnologias Utilizadas
 
-### 1. Servidor de Exfiltração (Node.js)
-O servidor atua como painel central para o atacante/administrador.
-*   **Upload de Arquivos**: Rotas `POST /profile` (upload único), `POST /photos/upload` (múltiplos) e `POST /cool-profile` que salvam os arquivos diretamente no diretório `uploads/` através do middleware `multer`.
-*   **Listagem e Download**: Endpoints `GET /files` e `GET /download/:filename` facilitam o resgate de ZIPs exfiltrados de computadores alvo.
-*   **Gerador Pix (EMV Co)**: Rota `GET /qrCode` que lê variáveis do `.env` (`PIX_KEY`, `PIX_NAME`, `PIX_CITY`) para estruturar uma string de pagamento Pix padronizada, calcular o CRC16 CCITT e gerar um QR Code em formato PNG bufferizado.
+### Servidor Web (Backend)
+* **Node.js** com **Express**
+* **Multer** (upload de arquivos em multipart/form-data)
+* **qrcode** (geração dinâmica de QR Code Pix no formato EMV Co)
+* **dotenv** (gerenciamento de variáveis de ambiente)
 
-### 2. Troll Terror (`terror.exe`)
-Software simulador de trollagem e intimidação visual. Ao ser executado:
-1.  **Bloqueio Total de Entrada**: Instala ganchos de sistema em baixo nível (`WH_KEYBOARD_LL`, `WH_MOUSE_LL`), trava o input de teclado com `BlockInput(TRUE)` e confina o mouse em um espaço de 1x1 pixel com `ClipCursor`.
-    *   *Mecanismo de Fuga*: Ao pressionar a tecla `INSERT`, o programa interrompe as threads de loop, remove os ganchos de entrada, cancela o desligamento do sistema e limpa as configurações temporárias.
-2.  **Persistência Agressiva**:
-    *   Substitui/injeta o executável no registro em `HKCU\Software\Microsoft\Windows NT\CurrentVersion\Winlogon` sob a chave `Shell` (inicializando instantaneamente junto com a interface do usuário).
-    *   Cria um atalho com nome randômico na chave `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` e define `StartupDelayInMSec` em `0` para anular o atraso de inicialização do Windows.
-3.  **Trollagem Visual e Sonora**:
-    *   Minimiza todas as janelas do Desktop.
-    *   Altera o papel de parede para uma imagem sólida vermelha instantaneamente e, em segundo plano, utiliza um script PowerShell oculto para baixar uma imagem externa.
-    *   Sintetiza um sinal senoidal de $1000\text{ Hz}$ na memória RAM e inicia um loop sonoro infinito de beeps com `PlaySoundW`.
-    *   Gera um spawner contínuo de janelas flutuantes aleatórias na tela com mensagens de ameaça em vermelho.
-    *   Cria uma tela sobreposta contendo um efeito de "derretimento" (dripping columns) de pixels misturado com ondas e blocos horizontais simulando glitches severos na placa de vídeo.
-4.  **Integração Web (QR Code)**:
-    *   Inicia uma conexão em segundo plano via `WinHTTP` apontando para o servidor configurado. Baixa o QR Code gerado pelo backend e desenha um card com GDI+ no topo da tela, solicitando que a vítima leia o código.
-5.  **Desligamento Forçado**: Agenda um reinício forçado no Windows em 120 segundos utilizando a chamada silenciosa `shutdown.exe /r /t 120 /f`.
-
-### 3. Coletor de Tokens Discord (`collector.exe` & `discord_launcher.exe`)
-Lógica silenciosa de exfiltração de credenciais focada em aplicativos Discord.
-*   **Descriptografia DPAPI**: Localiza a chave mestra criptografada no arquivo JSON `Local State` de múltiplos clientes Discord (Discord clássico, Canary, PTB, Development) e a descriptografa usando a API de Proteção de Dados do Windows (`CryptUnprotectData`).
-*   **Varredura em Bancos LevelDB**: Inicializa sessões AES-256-GCM nativas com a chave mestra para descriptografar os tokens salvos nos arquivos `.ldb` e `.log` do diretório `leveldb`. Também suporta a varredura de tokens legados em formato texto claro ou strings codificadas em UTF-16LE.
-*   **Exfiltração de Metadados**: Adquire dados locais do usuário, nome do host, versão do sistema operacional e faz um request HTTP para resgatar o endereço de IP público e geolocalização aproximada do alvo.
-*   **Geração de ZIP Multipart**: Compacta todos os resultados em um arquivo ZIP gerado em memória, adiciona o executável auxiliar `discord_launcher.exe` extraído de seus recursos binários embutidos e envia tudo via requisição multipart WinHTTP para o backend. O arquivo temporário local é apagado após o upload bem-sucedido.
-*   **Injeção Automatizada de Tokens (`discord_launcher.exe`)**:
-    *   Utilitário utilizado pelo atacante para carregar os tokens extraídos de `discord.txt`.
-    *   Abre uma sessão limpa do Microsoft Edge navegando até `discord.com`, aguarda carregar, envia um comando `F12` virtual para abrir a ferramenta de desenvolvedor (DevTools) e digita via simulação de teclado (`SendInput` caractere por caractere) um script JavaScript que injeta o token selecionado diretamente no `localStorage` da página através de um iframe aninhado, atualizando a página em seguida para logar na conta da vítima.
-
-### 4. Crip Locker (`crip.exe` / Ransomware Simulator)
-Motor multi-threaded demonstrativo para criptografia em lote de arquivos locais.
-*   **Algoritmo Híbrido**: 
-    *   Cria um cabeçalho customizado (`UnencryptedHeader`) estruturado com assinatura mágica `"LOCKgm2373"`, modo de criptografia (Rápido - encripta apenas 1 KB, ou Completo), vetor de inicialização (IV), hash SHA-256 para verificação da chave, tamanho do container RSA e campo para a chave AES criptografada por RSA-2048 de forma assimétrica.
-    *   Criptografa o arquivo utilizando AES-256 no modo CBC.
-    *   Modo alternativo baseado em senha simétrica onde o hash SHA-256 da senha é derivado com a função de derivação de chaves da API BCrypt.
-*   **Thread Pool Concorrente**: Instancia threads com base na concorrência de hardware (`std::thread::hardware_concurrency`) para ler, processar e reescrever arquivos concorrentemente com fila sincronizada por variáveis de condição, otimizando o throughput em discos SSD e HDDs.
-*   **Filtro e Segurança**: Possui lista de exclusão integrada para caminhos contendo pastas essenciais do sistema (ex: `Windows`, `Program Files`, `System Volume Information`, `AppData`) e extensões críticas de executáveis/bibliotecas (ex: `.exe`, `.dll`, `.sys`, `.ini`, `.lnk`) a fim de evitar corromper o funcionamento básico do Windows.
-*   **Modos de Alvo**: 
-    1.  *Todas as unidades*: Criptografa todas as partições disponíveis no PC.
-    2.  *Diretório Local*: Afeta apenas a pasta de execução e subpastas.
-    3.  *Partição de Origem*: Criptografa a unidade lógica onde o executável se encontra.
-    4.  *Apenas Unidades Externas*: Limita-se a dispositivos USB e HDDs removíveis (`DRIVE_REMOVABLE`).
+### Ambiente de Compilação & Ferramentas
+* **PowerShell (pwsh)**
+* **GCC / MinGW-w64** (compilação nativa e cross-compilação para Windows)
+* **MSVC (cl.exe / vcvars64)** (suporte opcional de compilação local no Windows)
+* **7-Zip / 7z** (compactação e segurança dos arquivos binários gerados)
+* **Docker** (para isolamento e execução do compilador mestre em qualquer SO)
 
 ---
 
-## 🛠️ Como Compilar e Executar
+## 🚀 Como Executar
 
-### Compilação dos Binários C++
+### 1. Servidor de Gerenciamento de Arquivos e Pix
 
-**Pré-requisitos**:
-*   Visual Studio 2022+ com C++ Desktop Development Toolset.
-*   Compilador MSVC (`cl.exe`) e MSBuild/vcvars64 no PATH.
+O servidor backend roda na porta padrão `3000` (ou definida no `.env`) e provê uma API REST básica além de uma interface web simples.
 
-#### Método 1: Via scripts individuais (.bat)
-Abra o console de ferramentas nativas do Visual Studio (x64 Native Tools Command Prompt) e execute:
+#### Configuração das Variáveis de Ambiente
+Copie o arquivo de exemplo `.env.example` para `.env` e configure conforme sua necessidade:
+```bash
+cp .env.example .env
+```
+Campos no `.env`:
+* `PORT`: Porta de execução (padrão: 3000)
+* `DOMAIN_SERVER`: URL completa do servidor backend (ex: `http://localhost:3000` ou `https://meudominio.com`)
+* `PIX_KEY`: Chave Pix utilizada para gerar o QR Code.
+* `PIX_NAME`: Nome do beneficiário do Pix.
+* `PIX_CITY`: Cidade do beneficiário.
+* `PIX_PAYLOAD`: Payload Pix bruto (caso deseje sobrepor a geração dinâmica).
 
-*   **Para compilar a suíte Troll (terror.exe)**:
-    ```cmd
-    cd collector_discord
-    build.bat
-    ```
-*   **Para compilar o Coletor com Launcher Embutido**:
-    ```cmd
-    cd collector_discord/collector
-    build.bat https://seu-servidor-url.com/profile
-    ```
+#### Instalação e Inicialização
+```bash
+npm install
+npm start
+```
+Acesse `http://localhost:3000` para visualizar a interface web de uploads/downloads.
 
-#### Método 2: Automação via PowerShell
-Execute o script agregador na pasta `compiller` ou `crip`:
+#### Endpoints Principais
+* `POST /profile`: Envia um único arquivo para a pasta `uploads/`.
+* `POST /photos/upload`: Envia múltiplos arquivos para a pasta `uploads/`.
+* `GET /files`: Retorna a lista de arquivos presentes na pasta `uploads/`.
+* `GET /download/:filename`: Realiza o download de um arquivo específico.
+* `GET /qrCode`: Retorna uma imagem PNG contendo o QR Code Pix dinâmico/estático configurado.
+
+---
+
+### 2. Compilação das Ferramentas (Builder Mestre)
+
+O script `builder/build.ps1` é o coordenador mestre de compilação. Ele busca recursivamente scripts `build.ps1` nos submódulos, executa a compilação de cada um, centraliza os executáveis e cria um **Launcher Paralelo Mestre** (`launcher.exe`).
+
+#### O que o Launcher Mestre faz:
+1. Extrai todos os binários utilitários embutidos para a pasta temporária do Windows (`%TEMP%`).
+2. Executa todos os payloads em paralelo de forma assíncrona.
+3. Aguarda a finalização dos processos.
+4. Remove os resíduos temporários do disco após a execução.
+
+#### Compilação Local (Windows)
+Certifique-se de ter `g++` (MinGW) ou as ferramentas do Visual Studio (MSVC) instaladas e execute no PowerShell:
 ```powershell
-# Compilar collector, launcher e terror
-cd collector_discord/compiller
-powershell -ExecutionPolicy Bypass -File build.ps1
-
-# Compilar motor de criptografia (crip)
-cd ../crip
-powershell -ExecutionPolicy Bypass -File build.ps1
+.\builder\build.ps1 -OutputName "launcher"
 ```
 
----
+#### Compilação com Docker (Recomendado / Multiplataforma)
+Construa e execute o container de compilação. O Dockerfile usa o cross-compilador `mingw-w64` sob o Linux:
 
-## 🖥️ Inicialização do Servidor (Backend/Frontend)
-
-1.  Acesse o diretório raiz do projeto.
-2.  Instale as dependências listadas no `package.json`:
-    ```bash
-    npm install
-    ```
-3.  Configure o arquivo `.env` com os dados Pix e a porta de rede:
-    ```env
-    PORT=3000
-    PIX_KEY=seu-email-ou-telefone@pix.com
-    PIX_NAME=Seu Nome
-    PIX_CITY=Sua Cidade
-    PIX_PAYLOAD=
-    ```
-4.  Inicie o servidor local:
-    ```bash
-    node server.js
-    ```
-5.  Acesse `http://localhost:3000` no seu navegador para verificar o painel visual e obter o histórico de exfiltrações.
+1. **Build da Imagem**:
+   ```bash
+   docker build -t windows-builder .
+   ```
+2. **Execução da Compilação**:
+   ```bash
+   docker run -it --rm -v "${pwd}:/workspace" windows-builder
+   ```
+   Os binários gerados serão gravados na pasta `builder/` na sua máquina local.
 
 ---
 
-## ⚠️ Isenção de Responsabilidade (Disclaimer)
+## 📦 Detalhes dos Submódulos (`collector_discord/`)
 
-> **ATENÇÃO**: Este projeto foi desenvolvido estritamente para **Fins Educacionais e de Pesquisa**. 
-> O uso destas ferramentas para infectar, coletar dados ou causar danos a sistemas sem o consentimento prévio e formal por escrito do proprietário é **estritamente proibido e constitui crime cibernético** sob as leis brasileiras (Lei Carolina Dieckmann, Código Penal) e internacionais.
-> O autor e os contribuidores não assumem qualquer responsabilidade pelo uso indevido, danos causados ou vazamento de dados decorrentes da execução deste código. Use sob seu próprio risco em ambientes de laboratório isolados.
+### 1. `collector_discord` (Stealer Principal - `terror.exe`)
+Coleta tokens do Discord a partir dos bancos de dados LevelDB locais, informações detalhadas sobre o hardware do computador alvo e geolocalização por IP. Salva em um arquivo `.zip`, realiza o upload para o servidor backend (`POST /profile`) e se exclui.
+
+### 2. `collector_discord/collector` (Injetor de Conta - `discord_launcher.exe`)
+Uma ferramenta utilizada pela pessoa que realizou o pentest para facilitar o acesso à conta comprometida.
+Ao ser alimentado com o arquivo `discord.txt` gerado pelo stealer, ele abre o Microsoft Edge e usa simulação de teclado em nível de kernel (`SendInput`) no DevTools para injetar o token no `localStorage` do Discord, efetuando o login imediato na conta.
+
+### 3. `collector_discord/crip` (Locker de Arquivos - `locker.exe` e `unlocker.exe`)
+Uma ferramenta de criptografia simétrica multi-threaded que utiliza criptografia de chave de fluxo rápida com chaves geradas por AES-256 e APIs nativas do Windows (`bcrypt.dll`).
+* **locker.exe**: Criptografa arquivos em diretórios configurados.
+* **unlocker.exe**: Reverte o processo caso a senha embutida no cabeçalho ou nas variáveis corresponda.
+Ambos são empacotados pelo script de build local num arquivo criptografado `release.zip` com senha.
+
+---
+
+## ⚠️ Aviso Legal
+
+> **IMPORTANTE**: Este repositório e as ferramentas nele contidas foram desenvolvidos estritamente para fins acadêmicos, educacionais e de testes de intrusão autorizados (Pentest). 
+> O uso destas ferramentas em sistemas sem consentimento prévio e por escrito do proprietário é estritamente proibido e pode violar leis locais de segurança da informação. Os desenvolvedores não assumem qualquer responsabilidade por eventuais danos causados pelo uso indevido das ferramentas.
